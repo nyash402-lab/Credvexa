@@ -1,0 +1,8 @@
+.env
+__pycache__/
+*.pyc
+credvexa_dev.db
+credvexa_dev.db-*
+backups/
+migration-reports/
+*.migration-lock

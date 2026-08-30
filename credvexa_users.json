@@ -1,0 +1,66 @@
+[
+  {
+    "id": "USR3178",
+    "full_name": "Demo User",
+    "email": "demo1787315273179@example.com",
+    "mobile": "9876543210",
+    "password": "Demo123!",
+    "created_at": "2026-08-21 17:57:53"
+  },
+  {
+    "id": "USR5966",
+    "full_name": "ghfghg",
+    "email": "nyashash@gmail.com",
+    "mobile": "8989898989",
+    "password": "hghghgg",
+    "created_at": "2026-08-21 17:58:37"
+  },
+  {
+    "id": "USR7774",
+    "full_name": "yash",
+    "email": "nyash402@gmail.com",
+    "mobile": "8427709450",
+    "password": "Yash@10082000",
+    "created_at": "2026-08-21 17:59:12"
+  },
+  {
+    "id": "USR1190",
+    "full_name": "Demo User",
+    "email": "demo1787315860883@example.com",
+    "mobile": "9000860883",
+    "password": "Demo123!",
+    "created_at": "2026-08-21 18:07:40"
+  },
+  {
+    "id": "USR4357",
+    "full_name": "Demo User",
+    "email": "demo1787316069989@example.com",
+    "mobile": "9000069989",
+    "password": "Demo123!",
+    "created_at": "2026-08-21 18:11:10"
+  },
+  {
+    "id": "USR4502",
+    "full_name": "Demo User",
+    "email": "demo1787316183313@example.com",
+    "mobile": "9000183313",
+    "password": "Demo123!",
+    "created_at": "2026-08-21 18:13:03"
+  },
+  {
+    "id": "USR8374",
+    "full_name": "Demo User",
+    "email": "demo1787316222482@example.com",
+    "mobile": "9000222482",
+    "password": "Demo123!",
+    "created_at": "2026-08-21 18:13:42"
+  },
+  {
+    "id": "USR2876",
+    "full_name": "Demo User",
+    "email": "demo1787316262823@example.com",
+    "mobile": "9000262823",
+    "password": "Demo123!",
+    "created_at": "2026-08-21 18:14:22"
+  }
+]
