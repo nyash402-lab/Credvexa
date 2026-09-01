@@ -969,7 +969,7 @@ INDEX_HTML = """
   </head>
   <body>
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">C</span><span>CREDVEXA</span></div>
+      <a class="brand" href="/brand"><span class="brand-mark">C</span><span>CREDVEXA</span></a>
       <div class="header-actions">
         <a href="/login">Login</a>
         <a class="primary" href="/signup">Sign Up</a>
@@ -1211,7 +1211,7 @@ INDEX_HTML = """
     <footer class="site-footer">
       <div class="site-footer-inner">
         <div class="brand-block">
-          <div class="brand"><span class="brand-mark">C</span><span>CREDVEXA</span></div>
+          <a class="brand" href="/brand"><span class="brand-mark">C</span><span>CREDVEXA</span></a>
           <p>Smart borrowing for modern life. We help you compare options, understand repayment plans, and move ahead with confidence through a secure digital workflow.</p>
           <div class="footer-badges">
             <span>ISO Ready</span>
@@ -1478,7 +1478,7 @@ APPLY_HTML = """
   </head>
   <body>
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">C</span><span>CREDVEXA</span></div>
+      <a class="brand" href="/brand"><span class="brand-mark">C</span><span>CREDVEXA</span></a>
       <nav>
         <a href="/">Home</a>
         <a href="/about">About</a>
@@ -2027,7 +2027,7 @@ TRACK_HTML = """
   </head>
   <body>
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">C</span><span>CREDVEXA</span></div>
+      <a class="brand" href="/brand"><span class="brand-mark">C</span><span>CREDVEXA</span></a>
       <nav>
         <a href="/">Home</a>
         <a href="/apply">Apply</a>
@@ -2226,7 +2226,7 @@ DASHBOARD_HTML = """
   </head>
   <body>
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">C</span><span>CREDVEXA</span></div>
+      <a class="brand" href="/brand"><span class="brand-mark">C</span><span>CREDVEXA</span></a>
       <nav>
         <a href="/">Home</a>
         <a href="/apply">Apply</a>
@@ -2393,7 +2393,7 @@ ABOUT_HTML = """
   </head>
   <body>
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">C</span> CREDVEXA</div>
+      <a class="brand" href="/brand"><span class="brand-mark">C</span> CREDVEXA</a>
       <nav>
         <a href="/">Home</a>
         <a href="/about">About</a>
@@ -2480,7 +2480,7 @@ CONTACT_HTML = """
   </head>
   <body>
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">C</span> CREDVEXA</div>
+      <a class="brand" href="/brand"><span class="brand-mark">C</span> CREDVEXA</a>
       <nav>
         <a href="/">Home</a>
         <a href="/about">About</a>
@@ -2564,7 +2564,7 @@ PRIVACY_HTML = """
   </head>
   <body>
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">C</span> CREDVEXA</div>
+      <a class="brand" href="/brand"><span class="brand-mark">C</span> CREDVEXA</a>
       <nav>
         <a href="/">Home</a>
         <a href="/about">About</a>
@@ -2637,7 +2637,7 @@ TERMS_HTML = """
   </head>
   <body>
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">C</span> CREDVEXA</div>
+      <a class="brand" href="/brand"><span class="brand-mark">C</span> CREDVEXA</a>
       <nav>
         <a href="/">Home</a>
         <a href="/about">About</a>
@@ -2713,7 +2713,7 @@ FAQ_HTML = """
   </head>
   <body>
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">C</span> CREDVEXA</div>
+      <a class="brand" href="/brand"><span class="brand-mark">C</span> CREDVEXA</a>
       <nav>
         <a href="/">Home</a>
         <a href="/about">About</a>
@@ -2795,7 +2795,7 @@ BLOG_HTML = """
   </head>
   <body>
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">C</span> CREDVEXA</div>
+      <a class="brand" href="/brand"><span class="brand-mark">C</span> CREDVEXA</a>
       <nav>
         <a href="/">Home</a>
         <a href="/about">About</a>
@@ -2877,7 +2877,7 @@ CALCULATOR_HTML = """
   </head>
   <body>
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">C</span> CREDVEXA</div>
+      <a class="brand" href="/brand"><span class="brand-mark">C</span> CREDVEXA</a>
       <nav>
         <a href="/">Home</a>
         <a href="/about">About</a>
@@ -3082,7 +3082,7 @@ SIGNUP_HTML = """
   </head>
   <body>
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">C</span> CREDVEXA</div>
+      <a class="brand" href="/brand"><span class="brand-mark">C</span> CREDVEXA</a>
       <div class="header-actions">
         <a href="/login">Login</a>
         <a class="primary" href="/signup">Sign Up</a>
@@ -3181,7 +3181,7 @@ LOGIN_HTML = """
   </head>
   <body>
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">C</span> CREDVEXA</div>
+      <a class="brand" href="/brand"><span class="brand-mark">C</span> CREDVEXA</a>
       <div class="header-actions">
         <a href="/login">Login</a>
         <a class="primary" href="/signup">Sign Up</a>
@@ -3279,7 +3279,7 @@ OTP_LOGIN_HTML = """
   </head>
   <body>
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">C</span> CREDVEXA</div>
+      <a class="brand" href="/brand"><span class="brand-mark">C</span> CREDVEXA</a>
       <nav>
         <a href="/">Home</a>
         <a href="/apply">Apply</a>
@@ -3759,7 +3759,7 @@ PRE_APPROVAL_HTML = """
     <div class="confetti-layer" id="confettiLayer" aria-hidden="true"></div>
 
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">C</span> CREDVEXA</div>
+      <a class="brand" href="/brand"><span class="brand-mark">C</span> CREDVEXA</a>
       <nav>
         <a href="/">Home</a>
         <a href="/apply">Apply</a>
@@ -4033,7 +4033,7 @@ LOAN_AMOUNT_SELECTION_HTML = """
   </head>
   <body>
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">C</span> CREDVEXA</div>
+      <a class="brand" href="/brand"><span class="brand-mark">C</span> CREDVEXA</a>
       <nav>
         <a href="/">Home</a>
         <a href="/apply">Apply</a>
@@ -4284,7 +4284,7 @@ DOCUMENT_VERIFICATION_HTML = """
   </head>
   <body>
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">C</span> CREDVEXA</div>
+      <a class="brand" href="/brand"><span class="brand-mark">C</span> CREDVEXA</a>
       <nav>
         <a href="/">Home</a>
         <a href="/apply">Apply</a>
@@ -4444,6 +4444,11 @@ APPLICATION_RECEIVED_HTML = """
 @app.route("/")
 def home_page():
     return render_template_string(INDEX_HTML)
+
+
+@app.route("/brand")
+def brand_page():
+  return redirect(url_for("dashboard_page" if session.get("logged_in") else "home_page"))
 
 
 @app.route("/about")

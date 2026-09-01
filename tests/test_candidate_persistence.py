@@ -34,6 +34,16 @@ class CandidatePersistenceTests(unittest.TestCase):
             with client.session_transaction() as session:
                 self.assertEqual(session["pre_offer_amount"], 67000)
 
+    def test_brand_link_routes_visitors_home_and_logged_in_users_to_dashboard(self):
+        with credvexa.app.test_client() as client:
+            visitor_response = client.get("/brand")
+            with client.session_transaction() as session:
+                session["logged_in"] = True
+            logged_in_response = client.get("/brand")
+
+        self.assertTrue(visitor_response.headers["Location"].endswith("/"))
+        self.assertTrue(logged_in_response.headers["Location"].endswith("/dashboard"))
+
     def test_verified_widget_flow_restores_saved_approved_amount(self):
         with credvexa.app.test_client() as client, \
                 patch("credvexa.verify_msg91_widget_access_token", return_value={"type": "success", "data": {"mobile": "9000000000"}}), \
