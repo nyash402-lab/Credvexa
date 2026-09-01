@@ -27,6 +27,7 @@ app.config["SECRET_KEY"] = settings.secret_key
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = settings.session_cookie_secure
+app.config["OTP_DEMO_MODE"] = settings.otp_demo_mode
 init_database(app)
 
 
@@ -194,6 +195,10 @@ MSG91_SENDER_ID = str(os.getenv("MSG91_SENDER_ID", "CREDVX")).strip()
 MSG91_COUNTRY_CODE = str(os.getenv("MSG91_COUNTRY_CODE", "91")).strip()
 MSG91_OTP_LENGTH = max(4, int(os.getenv("MSG91_OTP_LENGTH", "6")))
 MSG91_OTP_EXPIRY_MINUTES = max(1, int(os.getenv("MSG91_OTP_EXPIRY_MINUTES", "10")))
+FAST2SMS_AUTH_KEY = str(os.getenv("FAST2SMS_AUTH_KEY", "")).strip()
+FAST2SMS_API_BASE = str(os.getenv("FAST2SMS_API_BASE", "https://www.fast2sms.com/dev/bulkV2")).strip()
+FAST2SMS_SENDER_ID = str(os.getenv("FAST2SMS_SENDER_ID", "FSTSMS")).strip()
+FAST2SMS_OTP_ROUTE = str(os.getenv("FAST2SMS_OTP_ROUTE", "otp")).strip() or "otp"
 
 
 def normalize_msg91_mobile(mobile: str) -> str:
@@ -238,7 +243,7 @@ def call_msg91_api(endpoint: str, payload: dict):
     return data
 
 
-def send_msg91_otp(mobile: str, otp: str):
+def send_msg91_otp(mobile: str):
     normalized_mobile = normalize_msg91_mobile(mobile)
     if not normalized_mobile:
         raise ValueError("Please enter a valid 10-digit mobile number.")
@@ -247,9 +252,7 @@ def send_msg91_otp(mobile: str, otp: str):
     payload = {
         "mobile": normalized_mobile,
         "country": MSG91_COUNTRY_CODE,
-        "message": f"Your CREDVEXA OTP is {otp}. Valid for {MSG91_OTP_EXPIRY_MINUTES} minutes.",
         "sender": MSG91_SENDER_ID,
-        "otp": otp,
         "otp_length": str(MSG91_OTP_LENGTH),
         "otp_expiry": str(MSG91_OTP_EXPIRY_MINUTES),
     }
@@ -272,6 +275,88 @@ def verify_msg91_otp(mobile: str, otp: str):
         message = response.get("message") or response.get("error") or response.get("msg") or "Invalid OTP. Please try again."
         raise ValueError(str(message))
     return True
+
+
+def normalize_fast2sms_mobile(mobile: str) -> str:
+    digits = str(mobile or "").strip().replace("+", "").replace(" ", "")
+    if not digits:
+        return ""
+    if digits.startswith("00"):
+        digits = digits[2:]
+    if digits.startswith("91") and len(digits) == 12:
+        digits = digits[2:]
+    digits = re.sub(r"\D", "", digits)
+    if len(digits) == 10:
+        return digits
+    return digits[-10:] if len(digits) >= 10 else ""
+
+
+def call_fast2sms_api(payload: dict):
+    if not FAST2SMS_AUTH_KEY:
+        raise RuntimeError("Fast2SMS Auth Key is missing. Add FAST2SMS_AUTH_KEY to your .env file.")
+
+    headers = {
+        "authorization": FAST2SMS_AUTH_KEY,
+        "Content-Type": "application/json",
+        "cache-control": "no-cache",
+    }
+
+    try:
+        response = requests.post(FAST2SMS_API_BASE, json=payload, headers=headers, timeout=15)
+    except requests.RequestException as exc:
+        raise RuntimeError(f"Fast2SMS network failure: {exc}") from exc
+
+    try:
+        data = response.json() if response.content else {}
+    except ValueError:
+        data = {}
+
+    if response.status_code >= 400:
+        message = data.get("message") or data.get("error") or data.get("msg") or "Fast2SMS request failed."
+        raise RuntimeError(str(message))
+
+    status_value = str(data.get("status") or data.get("message") or data.get("return") or "").lower()
+    is_success = data.get("return") is True or status_value in {"success", "ok", "true", "sent", "queued"}
+    if not is_success and status_value not in {"", "success", "ok", "true", "sent", "queued"}:
+        raise ValueError(str(data.get("message") or data.get("error") or data.get("msg") or "Fast2SMS request failed."))
+
+    return data
+
+
+def send_fast2sms_otp(mobile: str, otp: str):
+    normalized_mobile = normalize_fast2sms_mobile(mobile)
+    if not normalized_mobile:
+        raise ValueError("Please enter a valid 10-digit mobile number.")
+
+    payload = {
+        "sender_id": FAST2SMS_SENDER_ID,
+        "message": f"Your CREDVEXA OTP is {otp}. Valid for {MSG91_OTP_EXPIRY_MINUTES} minutes.",
+        "numbers": normalized_mobile,
+        "route": FAST2SMS_OTP_ROUTE,
+        "language": "english",
+        "flash": 0,
+        "variables_values": str(otp),
+    }
+    return call_fast2sms_api(payload)
+
+
+def send_otp_via_available_channels(mobile: str, otp: str):
+    providers = [
+        ("MSG91", send_msg91_otp),
+        ("Fast2SMS", send_fast2sms_otp),
+    ]
+
+    last_error = None
+    for provider_name, sender in providers:
+        try:
+            return sender(mobile, otp)
+        except Exception as exc:
+            last_error = exc
+            continue
+
+    if last_error is None:
+        raise RuntimeError("OTP delivery failed on all configured SMS providers.")
+    raise RuntimeError(f"OTP delivery failed on all configured SMS providers: {last_error}")
 
 
 def load_users():
@@ -3352,7 +3437,9 @@ OTP_LOGIN_HTML = """
         </div>
 
         <div id="statusBox" class="status"></div>
+        {% if otp_demo_mode %}
         <div class="meta">Demo flow: OTP is generated by the portal for validation and testing purposes.</div>
+        {% endif %}
       </div>
     </main>
 
@@ -3361,6 +3448,7 @@ OTP_LOGIN_HTML = """
       const otpInput = document.getElementById('otp');
       const statusBox = document.getElementById('statusBox');
       const otpPanel = document.getElementById('otpPanel');
+      const otpDemoMode = {{ otp_demo_mode | tojson }};
 
       function setStatus(message, kind) {
         statusBox.className = `status ${kind}`;
@@ -3389,7 +3477,12 @@ OTP_LOGIN_HTML = """
           const data = await response.json();
           if (!response.ok) throw new Error(data.error || 'Unable to send OTP.');
           otpPanel.classList.add('visible');
-          setStatus(`OTP sent successfully to ${mobile}. Demo OTP: ${data.otp}`, 'success');
+          {% if otp_demo_mode %}
+          const demoOtpMessage = otpDemoMode && data.demo_otp ? ` Demo OTP: ${data.demo_otp}` : '';
+          {% else %}
+          const demoOtpMessage = '';
+          {% endif %}
+          setStatus(`OTP sent successfully to ${mobile}.${demoOtpMessage}`, 'success');
         } catch (error) {
           setStatus(error.message, 'error');
         }
@@ -4512,7 +4605,7 @@ def logout_page():
 
 @app.route("/verify-login")
 def otp_login_page():
-    return render_template_string(OTP_LOGIN_HTML)
+    return render_template_string(OTP_LOGIN_HTML, otp_demo_mode=settings.otp_demo_mode)
 
 
 @app.route("/pre-approved-loan")
@@ -4595,20 +4688,22 @@ def api_send_otp():
     if not validate_mobile(mobile):
         return jsonify({"error": "Please enter a valid 10-digit mobile number."}), 400
 
-    otp = f"{random.randint(100000, 999999)}"
-    OTP_STORAGE[mobile] = {
-        "otp": otp,
-        "expires_at": datetime.now() + timedelta(minutes=MSG91_OTP_EXPIRY_MINUTES),
-        "sent_at": now_stamp(),
-    }
+    if settings.otp_demo_mode:
+        otp = f"{random.randint(100000, 999999)}"
+        OTP_STORAGE[mobile] = {
+            "otp": otp,
+            "expires_at": datetime.now() + timedelta(minutes=MSG91_OTP_EXPIRY_MINUTES),
+            "sent_at": now_stamp(),
+        }
+        return jsonify({"message": "OTP sent successfully.", "demo_otp": otp, "demo": True})
 
     try:
-        send_msg91_otp(mobile, otp)
-        return jsonify({"message": "OTP sent successfully.", "otp": otp})
-    except RuntimeError as exc:
-        return jsonify({"error": str(exc), "otp": otp, "fallback": True}), 503
-    except Exception as exc:
-        return jsonify({"error": f"Unable to send OTP right now. Please try again later.", "otp": otp, "fallback": True}), 500
+        send_msg91_otp(mobile)
+        return jsonify({"message": "OTP sent successfully."})
+    except (RuntimeError, ValueError):
+        return jsonify({"error": "Unable to send OTP right now. Please try again later."}), 503
+    except Exception:
+        return jsonify({"error": "Unable to send OTP right now. Please try again later."}), 503
 
 
 @app.route("/api/signup", methods=["POST"])
@@ -4655,28 +4750,29 @@ def api_verify_otp():
     if not validate_mobile(mobile):
         return jsonify({"error": "Please enter a valid 10-digit mobile number."}), 400
 
-    record = OTP_STORAGE.get(mobile)
-    if record is None:
-        return jsonify({"error": "Invalid OTP. Please request a fresh OTP."}), 400
+    if settings.otp_demo_mode:
+        record = OTP_STORAGE.get(mobile)
+        if record is None:
+            return jsonify({"error": "Invalid OTP. Please request a fresh OTP."}), 400
 
-    if datetime.now() > record["expires_at"]:
+        if datetime.now() > record["expires_at"]:
+            OTP_STORAGE.pop(mobile, None)
+            return jsonify({"error": "OTP expired. Please request a new OTP."}), 410
+
+        expected_otp = str(record["otp"]).strip()
+        if otp != expected_otp:
+            return jsonify({"error": "Invalid OTP. Please enter the correct one."}), 400
+
         OTP_STORAGE.pop(mobile, None)
-        return jsonify({"error": "OTP expired. Please request a new OTP."}), 410
-
-    expected_otp = str(record["otp"]).strip()
-    if otp != expected_otp:
-        return jsonify({"error": "Invalid OTP. Please enter the correct one."}), 400
-
-    try:
-        verify_msg91_otp(mobile, otp)
-    except ValueError as exc:
-        return jsonify({"error": str(exc)}), 400
-    except RuntimeError as exc:
-        return jsonify({"error": str(exc)}), 503
-    except Exception as exc:
-        return jsonify({"error": "OTP verification failed. Please try again later."}), 500
-
-    OTP_STORAGE.pop(mobile, None)
+    else:
+        try:
+            verify_msg91_otp(mobile, otp)
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        except (RuntimeError, requests.RequestException):
+            return jsonify({"error": "Unable to verify OTP right now. Please try again later."}), 503
+        except Exception:
+            return jsonify({"error": "Unable to verify OTP right now. Please try again later."}), 503
 
     block = get_reapply_block(mobile=mobile)
     if block["blocked"]:
