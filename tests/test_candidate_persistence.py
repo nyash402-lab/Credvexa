@@ -34,17 +34,15 @@ class CandidatePersistenceTests(unittest.TestCase):
             with client.session_transaction() as session:
                 self.assertEqual(session["pre_offer_amount"], 67000)
 
-    def test_existing_otp_flow_restores_saved_approved_amount(self):
-        credvexa.OTP_STORAGE["9000000000"] = {"otp": "123456", "expires_at": credvexa.datetime.max, "sent_at": "test"}
+    def test_verified_widget_flow_restores_saved_approved_amount(self):
         with credvexa.app.test_client() as client, \
-                patch("credvexa.verify_msg91_otp", return_value=True), \
+                patch("credvexa.verify_msg91_widget_access_token", return_value={"type": "success", "data": {"mobile": "9000000000"}}), \
                 patch("credvexa.get_reapply_block", return_value={"blocked": False, "days_remaining": 0, "reason": ""}), \
                 patch("credvexa.get_preapproved_offer_for_candidate", return_value={"offer_amount": 50000, "max_tenure_months": 60, "rate": 11.5}), \
                 patch("credvexa.get_saved_approved_amount", return_value=67000):
-            response = client.post("/api/verify-otp", json={"mobile": "9000000000", "otp": "123456"})
+            response = client.post("/api/verify-msg91-widget-token", json={"mobile": "9000000000", "accessToken": "test-token"})
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.get_json()["offer_amount"], 50000)
         with client.session_transaction() as session:
             self.assertEqual(session["pre_offer_amount"], 67000)
 

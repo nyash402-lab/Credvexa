@@ -23,7 +23,6 @@ class AppSettings:
     host: str
     port: int
     session_cookie_secure: bool
-    otp_demo_mode: bool
 
 
 def get_settings() -> AppSettings:
@@ -42,7 +41,6 @@ def get_settings() -> AppSettings:
         environment=environment,
         secret_key=secret_key,
         debug=environment == "development",
-        otp_demo_mode=environment == "development",
         host=str(os.getenv("HOST", "0.0.0.0" if environment == "production" else "127.0.0.1")).strip(),
         port=_get_port(),
         session_cookie_secure=environment == "production",

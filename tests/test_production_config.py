@@ -18,7 +18,6 @@ class ProductionConfigTests(unittest.TestCase):
         self.assertEqual(settings.host, "127.0.0.1")
         self.assertEqual(settings.port, 5000)
         self.assertFalse(settings.session_cookie_secure)
-        self.assertTrue(settings.otp_demo_mode)
         self.assertNotEqual(settings.secret_key, "credvexa-demo-session-key")
 
     def test_production_requires_secret_key(self):
@@ -38,7 +37,6 @@ class ProductionConfigTests(unittest.TestCase):
         self.assertEqual(settings.host, "0.0.0.0")
         self.assertEqual(settings.port, 8080)
         self.assertTrue(settings.session_cookie_secure)
-        self.assertFalse(settings.otp_demo_mode)
 
     def test_production_missing_database_is_graceful(self):
         with patch.dict(os.environ, {"FLASK_ENV": "production", "SECRET_KEY": "test-secret-key"}, clear=True):
