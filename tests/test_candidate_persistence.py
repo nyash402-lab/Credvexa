@@ -62,11 +62,66 @@ class CandidatePersistenceTests(unittest.TestCase):
                 patch("credvexa.create_application", return_value=application), \
                 patch("credvexa.generate_age_based_offer", return_value=67000), \
                 patch("credvexa.save_approved_amount", return_value=True) as save_approved_amount:
+            with client.session_transaction() as session:
+                session["otp_verified"] = True
+                session["candidate_mobile"] = "9000000000"
             response = client.post("/api/applications", json={})
 
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.get_json()["offer_amount"], 67000)
         save_approved_amount.assert_called_once_with("CRX1", 67000)
+
+    def test_dashboard_requires_login_and_filters_to_candidate_records(self):
+        with credvexa.app.test_client() as client:
+            response = client.get("/api/dashboard")
+            self.assertEqual(response.status_code, 401)
+
+            with client.session_transaction() as session:
+                session["logged_in"] = True
+                session["otp_verified"] = True
+                session["candidate_mobile"] = "9000000000"
+
+            with patch("credvexa.load_applications", return_value=[
+                {"application_id": "CRX1", "mobile": "9000000000", "full_name": "Alpha", "status": "UNDER_REVIEW"},
+                {"application_id": "CRX2", "mobile": "9111111111", "full_name": "Beta", "status": "APPROVED"},
+            ]):
+                response = client.get("/api/dashboard")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.get_json()["applications"]), 1)
+        self.assertEqual(response.get_json()["applications"][0]["mobile"], "9000000000")
+
+    def test_application_submission_requires_verified_otp_session(self):
+        with credvexa.app.test_client() as client:
+            response = client.post("/api/applications", json={})
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_verification_fee_requires_verified_otp_session(self):
+        with credvexa.app.test_client() as client:
+            response = client.post("/api/pay-verification-fee", json={"amount": 199})
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_create_user_account_hashes_password_before_storage(self):
+        original_users_file = credvexa.USERS_FILE
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            credvexa.USERS_FILE = Path(temporary_directory) / "users.json"
+            credvexa.USERS_FILE.write_text("[]", encoding="utf-8")
+
+            user = credvexa.create_user_account({
+                "full_name": "Hashed User",
+                "email": "hashed@example.com",
+                "mobile": "9000000001",
+                "password": "StrongPass!123",
+            })
+            stored_user = credvexa.load_users()[0]
+
+            self.assertNotEqual(stored_user["password"], "StrongPass!123")
+            self.assertTrue(credvexa.authenticate_user("hashed@example.com", "StrongPass!123"))
+            self.assertIsNotNone(user)
+
+        credvexa.USERS_FILE = original_users_file
 
 
 if __name__ == "__main__":

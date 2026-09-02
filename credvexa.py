@@ -11,6 +11,7 @@ from pathlib import Path
 import requests
 from dotenv import load_dotenv
 from flask import Flask, jsonify, redirect, render_template_string, request, session, url_for
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.config import get_settings
 from app.database import init_database
@@ -277,6 +278,23 @@ def generate_age_based_offer(age: int):
     return random.choice(choices)
 
 
+def hash_password(password: str) -> str:
+    return generate_password_hash(str(password).strip(), method="pbkdf2:sha256")
+
+
+def verify_password(stored_password: str, candidate_password: str) -> bool:
+    stored = str(stored_password or "")
+    candidate = str(candidate_password or "")
+    if not stored or not candidate:
+        return False
+    if stored == candidate:
+        return True
+    try:
+        return check_password_hash(stored, candidate)
+    except Exception:
+        return False
+
+
 def create_user_account(payload):
     required = ["full_name", "email", "mobile", "password"]
     for field_name in required:
@@ -302,7 +320,7 @@ def create_user_account(payload):
         "full_name": str(payload["full_name"]).strip(),
         "email": email,
         "mobile": mobile,
-        "password": password,
+        "password": hash_password(password),
         "created_at": now_stamp(),
     }
     users.append(user)
@@ -313,12 +331,11 @@ def create_user_account(payload):
 def authenticate_user(email_or_mobile: str, password: str):
     users = load_users()
     for user in users:
-        if str(user.get("email", "")).strip().lower() == str(email_or_mobile).strip().lower():
-            if str(user.get("password", "")) == str(password):
-                return user
-        if str(user.get("mobile", "")).strip() == str(email_or_mobile).strip():
-            if str(user.get("password", "")) == str(password):
-                return user
+        stored_password = str(user.get("password", ""))
+        if str(user.get("email", "")).strip().lower() == str(email_or_mobile).strip().lower() and verify_password(stored_password, password):
+            return user
+        if str(user.get("mobile", "")).strip() == str(email_or_mobile).strip() and verify_password(stored_password, password):
+            return user
     return None
 
 
@@ -4530,6 +4547,8 @@ def loan_amount_selection_page():
 
 @app.route("/document-verification")
 def document_verification_page():
+    if not session.get("otp_verified"):
+        return redirect(url_for("otp_login_page"))
     return render_template_string(DOCUMENT_VERIFICATION_HTML)
 
 
@@ -4581,6 +4600,8 @@ def reapply_blocked_page():
 
 @app.route("/application-received")
 def application_received_page():
+    if not session.get("application_submitted"):
+        return redirect(url_for("home_page"))
     return render_template_string(APPLICATION_RECEIVED_HTML)
 
 
@@ -4660,6 +4681,9 @@ def api_verify_msg91_widget_token():
 
 @app.route("/api/pay-verification-fee", methods=["POST"])
 def api_pay_verification_fee():
+    if not session.get("otp_verified"):
+        return jsonify({"error": "Authentication required."}), 401
+
     payload = request.get_json(silent=True) or {}
     amount = payload.get("amount")
     if amount != 199:
@@ -4681,16 +4705,23 @@ def apply_page():
 
 @app.route("/track")
 def track_page():
+    if not session.get("otp_verified"):
+        return redirect(url_for("otp_login_page"))
     return render_template_string(TRACK_HTML)
 
 
 @app.route("/dashboard")
 def dashboard_page():
+    if not session.get("otp_verified"):
+        return redirect(url_for("otp_login_page"))
     return render_template_string(DASHBOARD_HTML)
 
 
 @app.route("/api/applications", methods=["POST"])
 def api_create_application():
+    if not session.get("otp_verified"):
+        return jsonify({"error": "Authentication required."}), 401
+
     try:
         payload = request.get_json(silent=True) or {}
         app_record = create_application(payload)
@@ -4716,15 +4747,30 @@ def api_create_application():
 
 @app.route("/api/track/<application_id>/<mobile>", methods=["GET"])
 def api_track_application(application_id, mobile):
+    if not session.get("otp_verified"):
+        return jsonify({"error": "Authentication required."}), 401
+
     record = find_application(application_id=application_id, mobile=mobile)
     if not record:
+        return jsonify({"error": "Application not found."}), 404
+    if str(session.get("candidate_mobile") or session.get("user_mobile") or "") and str(record.get("mobile", "")).strip() != str(session.get("candidate_mobile") or session.get("user_mobile") or "").strip():
         return jsonify({"error": "Application not found."}), 404
     return jsonify(record)
 
 
 @app.route("/api/dashboard", methods=["GET"])
 def api_dashboard():
-    records = load_applications()
+    if not session.get("otp_verified"):
+        return jsonify({"error": "Authentication required."}), 401
+
+    candidate_mobile = str(session.get("candidate_mobile") or session.get("user_mobile") or "").strip()
+    if not candidate_mobile:
+        return jsonify({"error": "Authentication required."}), 401
+
+    records = [
+        item for item in load_applications()
+        if str(item.get("mobile", "")).strip() == candidate_mobile
+    ]
     under_review = sum(1 for item in records if str(item.get("status", "")).upper() == "UNDER_REVIEW")
     approved = sum(1 for item in records if str(item.get("status", "")).upper() == "APPROVED")
     return jsonify({
@@ -4737,19 +4783,16 @@ def api_dashboard():
 
 @app.route("/api/admin/applications", methods=["GET"])
 def admin_list_applications():
-    return jsonify(load_applications())
+    if not session.get("otp_verified"):
+        return jsonify({"error": "Unauthorized."}), 401
+    return jsonify({"error": "Unauthorized."}), 403
 
 
 @app.route("/api/admin/application/<application_id>/status", methods=["PATCH"])
 def admin_update_application(application_id):
-    payload = request.get_json(silent=True) or {}
-    status = payload.get("status", "UNDER_REVIEW")
-    note = payload.get("note", "Status updated.")
-    try:
-        updated = update_application_status(application_id, status, note)
-        return jsonify({"message": "Status updated.", "application": updated})
-    except ValueError as exc:
-        return jsonify({"error": str(exc)}), 404
+    if not session.get("otp_verified"):
+        return jsonify({"error": "Unauthorized."}), 401
+    return jsonify({"error": "Unauthorized."}), 403
 
 
 if __name__ == "__main__":
